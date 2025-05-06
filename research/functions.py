@@ -1,11 +1,36 @@
+import warnings
 import pandas as pd
 from tqdm import tqdm
 from scipy.stats import spearmanr, pearsonr
+from scipy.stats import ConstantInputWarning
 from pyAutoSummarizer.base.evaluation.base import get_summary_evaluation
 from pyAutoSummarizer.base.evaluation.lexical import RougeEvaluator, BLEUEvaluator
 from pyAutoSummarizer.base.evaluation.semantic import BERTScoreEvaluator
 
 tqdm.pandas()
+warnings.filterwarnings("ignore", category=ConstantInputWarning)
+
+
+PATH_SUMMEVAL_JSONL = "../data/model_annotations.aligned.jsonl"
+LEXICAL_EVAL=[
+    RougeEvaluator(),
+    BLEUEvaluator(),
+    ]
+LEXICAL_PREFIX="lexical"
+SEMANTIC_PREFIX="semantic"
+SEMANTIC_EVAL   =  [BERTScoreEvaluator()]
+JOIN_COLS = ["id","model_id"]
+# A1 = 0.5
+# A2 = 0.5
+LEXICAL_COL = f'{LEXICAL_PREFIX}_overall_mean'
+SEMANTIC_COL = f'{SEMANTIC_PREFIX}_overall_mean'
+NEW_METRIC_COL = 'new_metric_col'
+EVAL_COLS = [LEXICAL_PREFIX, SEMANTIC_PREFIX, NEW_METRIC_COL]
+# methods = ['pearson']#, 'spearman']
+METHODS = ['spearman']
+N = 50 #SAMPLE SIZE
+HUMAN_COLS = ["exp_"]
+FINAL_METRIC = "exp_overall_mean"
 
 def aggregate_dataframe(df,label: str, prefix: str,explode=True) -> pd.DataFrame:
     # Explode a lista na coluna alvo se necessário
@@ -48,15 +73,15 @@ def get_metrics_evaluator(df,evaluators,prefix: str) -> pd.DataFrame:
 
 def get_corr_frame(df, eval_cols_preffix , human_cols_preffix, method='pearson'):
     # 1. Seleciona colunas
-    eval_cols = [c for c in df.columns if c.startswith(eval_cols_preffix)]
-    human_cols = [c for c in df.columns if c.startswith(human_cols_preffix) ]
+    eval_columns = [c for c in df.columns if c.startswith(eval_cols_preffix)]
+    human_columns = [c for c in df.columns if c.startswith(human_cols_preffix) ]
 
     # 2. Cria DataFrame de correlações
     correlation_data = {}
 
-    for eval_col in eval_cols:
+    for eval_col in eval_columns:
         row = {}
-        for human_col in human_cols:
+        for human_col in human_columns:
             x = df[eval_col]
             y = df[human_col]
 
@@ -85,45 +110,28 @@ def get_corr(metrics_frame, eval_cols_preffix , human_cols_preffix, methods=['pe
 
     return correlation_table 
 
-def get_combinated_metric(avg_summeval_metrics,df_agg,join_cols):
+def get_combinated_metric(avg_summeval_metrics,df_agg,join_cols,A1,A2):
     # Merge the two DataFrames on the specified columns
     combined_df = pd.merge(avg_summeval_metrics, df_agg, on=join_cols, how='inner')
     
     # Calculate the new metric as a weighted sum of the two columns
-    combined_df[NEW_METRIC_COL] = A1 * combined_df[lexical_col] + A2 * combined_df[semantic_col]
+    combined_df[NEW_METRIC_COL] = A1 * combined_df[LEXICAL_COL] + A2 * combined_df[SEMANTIC_COL]
     
     return combined_df
 
-
-PATH_SUMMEVAL_JSONL = "../data/model_annotations.aligned.jsonl"
-lexical_eval=[
-    RougeEvaluator(),
-    BLEUEvaluator(),
-    ]
-LEXICAL_PREFIX="lexical"
-SEMANTIC_PREFIX="semantic"
-semantic_eval   =  [BERTScoreEvaluator()]
-JOIN_COLS = ["id","model_id"]
-A1 = 0.5
-A2 = 0.5
-lexical_col = f'{LEXICAL_PREFIX}_overall_mean'
-semantic_col = f'{SEMANTIC_PREFIX}_overall_mean'
-NEW_METRIC_COL = 'new_metric_col'
-eval_cols = [LEXICAL_PREFIX, SEMANTIC_PREFIX, NEW_METRIC_COL]
-# methods = ['pearson']#, 'spearman']
-methods = ['spearman']
-N = 3 #SAMPLE SIZE
-human_cols = ["exp_"]
-FINAL_METRIC = "exp_overall_mean"
-
-def get_final_corr():
+def get_agg_frame():
     df = pd.read_json(PATH_SUMMEVAL_JSONL, lines=True)
     avg_summeval_metrics = get_metrics_annotations(df)
-    df_agg_lexical = get_metrics_evaluator(df.sample(N),lexical_eval , LEXICAL_PREFIX)
-    df_agg_semantic= get_metrics_evaluator(df.sample(N),semantic_eval , SEMANTIC_PREFIX )
+    df_sample = df.sample(N).copy()
+    df_agg_lexical = get_metrics_evaluator(df_sample,LEXICAL_EVAL , LEXICAL_PREFIX)
+    df_agg_semantic= get_metrics_evaluator(df_sample,SEMANTIC_EVAL , SEMANTIC_PREFIX )
     df_agg = pd.merge(df_agg_lexical, df_agg_semantic, on= JOIN_COLS)
-    metrics_frame = get_combinated_metric(avg_summeval_metrics, df_agg, JOIN_COLS)
-    correlation_table = get_corr(metrics_frame, eval_cols, human_cols,  methods)
-    FINAL_CORR = correlation_table.loc[NEW_METRIC_COL,FINAL_METRIC]
+    return (avg_summeval_metrics,df_agg)
 
+def get_final_corr(avg_summeval_metrics,df_agg,A1,A2):
+    metrics_frame = get_combinated_metric(avg_summeval_metrics, df_agg, JOIN_COLS,A1,A2)
+    correlation_table = get_corr(metrics_frame, EVAL_COLS, HUMAN_COLS,  METHODS)
+    FINAL_CORR = correlation_table.loc[NEW_METRIC_COL,FINAL_METRIC]
     return FINAL_CORR
+
+
