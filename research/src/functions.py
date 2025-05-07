@@ -155,7 +155,7 @@ def get_combinated_metric(avg_summeval_metrics, df_agg, join_cols, A1=None, A2=N
 def get_agg_frame(n=N):
     df = pd.read_json(PATH_SUMMEVAL_JSONL, lines=True)
     avg_summeval_metrics = get_metrics_annotations(df)
-    df_sample = df.sample(N).copy()
+    df_sample = df.sample(n).copy()
     df_agg_lexical = get_metrics_evaluator(df_sample,LEXICAL_EVAL , LEXICAL_PREFIX)
     df_agg_semantic= get_metrics_evaluator(df_sample,SEMANTIC_EVAL , SEMANTIC_PREFIX )
     df_agg = pd.merge(df_agg_lexical, df_agg_semantic, on= JOIN_COLS)
