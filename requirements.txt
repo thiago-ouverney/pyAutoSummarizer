@@ -11,4 +11,5 @@ rouge_score
 bert-score
 nltk
 tqdm
+plotly
 # questeval==0.1.1
