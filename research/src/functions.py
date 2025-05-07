@@ -11,14 +11,13 @@ from research.src.constants import (
     SEMANTIC_PREFIX,
     SEMANTIC_EVAL,
     JOIN_COLS,
-    LEXICAL_COL,
-    SEMANTIC_COL,
     HIBRITY_QUALITY_SCORE,
     EVAL_COLS,
     METHODS,
     N,
     HUMAN_COLS,
-    FINAL_METRIC
+    FINAL_METRIC,FILE_PATH_DF_AGG,
+    FILE_PATH_AVG_SUMMEVAL_METRICS 
 )
 
 
@@ -152,17 +151,43 @@ def get_combinated_metric(avg_summeval_metrics, df_agg, join_cols, A1=None, A2=N
 
     return combined_df
 
-def get_agg_frame(n=N):
+def get_agg_frame(n=N,cache=True,save=False,only_cached=False):
+    df_agg_cached = None
+    avg_summeval_metrics = None
+    if cache:
+        try:
+            df_agg_cached = pd.read_csv(FILE_PATH_DF_AGG)
+            avg_summeval_metrics = pd.read_csv(FILE_PATH_AVG_SUMMEVAL_METRICS)
+            if only_cached:
+                return (avg_summeval_metrics,df_agg_cached)
+        except FileNotFoundError:
+            pass
     df = pd.read_json(PATH_SUMMEVAL_JSONL, lines=True)
     avg_summeval_metrics = get_metrics_annotations(df)
     df_sample = df.sample(n).copy()
+    df_sample["id_model_id"] = df_sample[JOIN_COLS[0]].astype(str) + "_" + df_sample[JOIN_COLS[1]].astype(str)
+
+    # Checar oq não tem previamente salvo
+    if df_agg_cached is not None:
+        df_agg_cached["id_model_id"] = df_agg_cached[JOIN_COLS[0]].astype(str) + "_" + df_agg_cached[JOIN_COLS[1]].astype(str)
+        ids_cached = set(df_agg_cached["id_model_id"])
+        df_sample = df_sample[~df_sample["id_model_id"].isin(ids_cached)]
+    if df_sample.empty:
+        return (avg_summeval_metrics, df_agg_cached.drop(columns="id_model_id", errors="ignore"))
+    
+    df_sample = df_sample.drop(columns="id_model_id", errors="ignore").copy()
     df_agg_lexical = get_metrics_evaluator(df_sample,LEXICAL_EVAL , LEXICAL_PREFIX)
     df_agg_semantic= get_metrics_evaluator(df_sample,SEMANTIC_EVAL , SEMANTIC_PREFIX )
     df_agg = pd.merge(df_agg_lexical, df_agg_semantic, on= JOIN_COLS)
+    # Retomando os dados previamente carregados e fazendo um union all
+    df_agg= pd.concat([df_agg_cached, df_agg], axis=0) if df_agg_cached is not None else df_agg 
+    if save:
+        df_agg.to_csv(FILE_PATH_DF_AGG, index=False)
+        avg_summeval_metrics.to_csv(FILE_PATH_AVG_SUMMEVAL_METRICS, index=False)
     return (avg_summeval_metrics,df_agg)
 
 def get_final_corr(avg_summeval_metrics,df_agg,A1=None,A2=None,B1=None,B2=None):
-    metrics_frame = get_combinated_metric(avg_summeval_metrics, df_agg, JOIN_COLS,A1,A2)
+    metrics_frame = get_combinated_metric(avg_summeval_metrics, df_agg, JOIN_COLS,A1,A2,B1,B2)
     correlation_table = get_corr(metrics_frame, EVAL_COLS, HUMAN_COLS,  METHODS)
     FINAL_CORR = correlation_table.loc[HIBRITY_QUALITY_SCORE,FINAL_METRIC]
     return FINAL_CORR

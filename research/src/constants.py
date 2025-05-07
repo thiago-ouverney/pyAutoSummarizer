@@ -8,7 +8,9 @@ LEXICAL_EVAL=[
     ]
 LEXICAL_PREFIX="lexical"
 SEMANTIC_PREFIX="semantic"
-SEMANTIC_EVAL   =  [BERTScoreEvaluator()]
+SEMANTIC_EVAL   =  [
+    BERTScoreEvaluator()
+    ]
 JOIN_COLS = ["id","model_id"]
 LEXICAL_COL = f'{LEXICAL_PREFIX}_overall_mean'
 SEMANTIC_COL = f'{SEMANTIC_PREFIX}_overall_mean'
@@ -18,4 +20,6 @@ METHODS = ['spearman']
 N = 2 #SAMPLE SIZE
 HUMAN_COLS = ["exp_"]
 FINAL_METRIC = "exp_overall_mean"
+FILE_PATH_DF_AGG = "../data/df_agg.csv"
+FILE_PATH_AVG_SUMMEVAL_METRICS = "../data/avg_summeval_metrics.csv"
 # FINAL_METRIC = HIBRITY_QUALITY_SCORE
