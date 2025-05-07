@@ -11,7 +11,8 @@ def objective(trial,avg_summeval_metrics, df_agg):
     # sugere um peso para cada coluna lexical e semantic
     A1 = [trial.suggest_float(f"A1_{i}", 0.0, 1.0) for i in range(n_lex)]
     A2 = [trial.suggest_float(f"A2_{j}", 0.0, 1.0) for j in range(n_sem)]
-
+    B1 = trial.suggest_float("B1", 0.0, 1.0)
+    B2 = trial.suggest_float("B2", 0.0, 1.0)
     # normaliza para soma = 1 (ou usa distribuição uniforme se tudo zero)
     sum1 = sum(A1)
     if sum1 > 0:
@@ -25,9 +26,18 @@ def objective(trial,avg_summeval_metrics, df_agg):
     else:
         A2 = [1.0 / n_sem] * n_sem
 
+    sum3 = B1 + B2
+    if sum3 > 0:
+        B1 = B1 / sum3
+        B2 = B2 / sum3
+    else:
+        B1 = 0.5
+        B2 = 0.5
+
+
     try:
         # get_final_corr agora espera A1 e A2 como listas de pesos
-        corr = get_final_corr(avg_summeval_metrics, df_agg, A1, A2)
+        corr = get_final_corr(avg_summeval_metrics, df_agg, A1, A2, B1, B2)
         return corr if pd.notnull(corr) else float('-inf')
     except Exception as e:
         print(f"Erro ao calcular corr(A1={A1}, A2={A2}): {e}")
