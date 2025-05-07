@@ -11,5 +11,7 @@ rouge_score
 bert-score
 nltk
 tqdm
+optuna
 plotly
+seaborn
 # questeval==0.1.1
