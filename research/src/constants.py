@@ -1,21 +1,29 @@
-from pyAutoSummarizer.base.evaluation.lexical import RougeEvaluator, BLEUEvaluator
-from pyAutoSummarizer.base.evaluation.semantic import BERTScoreEvaluator
+from pyAutoSummarizer.base.evaluation.lexical import RougeEvaluator, BLEUEvaluator, METEOREvaluator
+from pyAutoSummarizer.base.evaluation.semantic import BERTScoreEvaluator, SentenceBertEvaluator
+from pyAutoSummarizer.base.evaluation.factual import FactCCEvaluator
 
 PATH_SUMMEVAL_JSONL = "../data/model_annotations.aligned.jsonl"
 LEXICAL_EVAL=[
     RougeEvaluator(),
     BLEUEvaluator(),
+    METEOREvaluator()
     ]
 LEXICAL_PREFIX="lexical"
 SEMANTIC_PREFIX="semantic"
 SEMANTIC_EVAL   =  [
-    BERTScoreEvaluator()
+    BERTScoreEvaluator(),
+    SentenceBertEvaluator(),
     ]
+FACTUAL_PREFIX="factual"
+FACTUAL_EVAL   =  [
+    FactCCEvaluator(),
+    ]
+
 JOIN_COLS = ["id","model_id"]
 LEXICAL_COL = f'{LEXICAL_PREFIX}_overall_mean'
 SEMANTIC_COL = f'{SEMANTIC_PREFIX}_overall_mean'
 HIBRITY_QUALITY_SCORE = 'hybrid_quality_score'
-EVAL_COLS = [LEXICAL_PREFIX, SEMANTIC_PREFIX, HIBRITY_QUALITY_SCORE]
+EVAL_COLS = [LEXICAL_PREFIX, SEMANTIC_PREFIX, FACTUAL_PREFIX, HIBRITY_QUALITY_SCORE]
 METHODS = ['spearman']
 N = 2 #SAMPLE SIZE
 HUMAN_COLS = ["exp_"]
