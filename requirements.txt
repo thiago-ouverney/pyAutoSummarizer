@@ -15,4 +15,5 @@ optuna
 plotly
 seaborn
 kaleido
+ipykernel
 # questeval==0.1.1
