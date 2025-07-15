@@ -1,0 +1,19 @@
+chardet==5.2.0
+llmx
+numpy
+regex
+scikit-learn==1.6.1
+sentence-transformers==4.1.0
+openai==1.77.0
+transformers==4.51.3
+pandas
+rouge_score
+bert-score
+nltk
+tqdm
+optuna
+plotly
+seaborn
+kaleido
+ipykernel
+# questeval==0.1.1

@@ -1,0 +1,11 @@
+[project]
+name = "tcc"
+version = "0.1.0"
+readme = "README.md"
+
+[tool.setuptools]
+packages = { find = { where = [".","research"] } }
+
+[build-system]
+requires = ["setuptools>=63", "wheel"]
+build-backend = "setuptools.build_meta"
